@@ -100,6 +100,21 @@ trait Service extends Protocols {
           }
         }
       } ~
+      path("profile") {
+        (get & parameter("fb_token")) { fbToken =>
+          complete {
+            fbToken
+          }
+        }
+      } ~
+      path("events") {
+        (get & parameters("fb_token", "fb_profile", "meetup_profile", "city", "date_from", "date_to")) {
+            (fbToken, fbProfile, meetupProfile, city, dateFrom, dateTo) =>
+          complete {
+            s"fbToken: $fbToken, fbProfile: $fbProfile, meetupProfile: $meetupProfile, city: $city, dateFrom: $dateFrom, dateTo: $dateTo"
+          }
+        }
+      } ~
       (get & path(Segments(0, Int.MaxValue))) { _ =>
         complete {
           BadRequest -> "Bad request, check documentation: https://github.com/jakozaur/facebook-microservice"
