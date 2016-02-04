@@ -4,6 +4,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
+import akka.http.scaladsl.model.HttpHeader.ParsingResult.Ok
 import akka.http.scaladsl.model.{HttpResponse, HttpRequest}
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
@@ -16,6 +17,8 @@ import java.io.IOException
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.math._
 import spray.json.DefaultJsonProtocol
+
+case class ReturnFacebookEvent(data: List[FacebookEvent])
 
 case class IpInfo(ip: String, country_name: Option[String], city: Option[String], latitude: Option[Double], longitude: Option[Double])
 
@@ -44,7 +47,8 @@ object IpPairSummary {
   private val EarthRadius = 6371.0
 }
 
-trait Protocols extends DefaultJsonProtocol {
+trait Protocols extends DefaultJsonProtocol with FacebookProtocols {
+  implicit val returnFacebookEvent = jsonFormat1(ReturnFacebookEvent.apply)
   implicit val ipInfoFormat = jsonFormat5(IpInfo.apply)
   implicit val ipPairSummaryRequestFormat = jsonFormat2(IpPairSummaryRequest.apply)
   implicit val ipPairSummaryFormat = jsonFormat3(IpPairSummary.apply)
@@ -57,6 +61,8 @@ trait Service extends Protocols {
 
   def config: Config
   val logger: LoggingAdapter
+
+  lazy val facebookApi = new FacebookApi(config)
 
   lazy val freeGeoIpConnectionFlow: Flow[HttpRequest, HttpResponse, Any] =
     Http().outgoingConnection(config.getString("services.freeGeoIpHost"), config.getInt("services.freeGeoIpPort"))
@@ -75,6 +81,13 @@ trait Service extends Protocols {
         }
       }
     }
+  }
+
+  private lazy val facebookConnectionFlow: Flow[HttpRequest, HttpResponse, Any] =
+    Http().outgoingConnection(config.getString("facebook.host"), config.getInt("facebook.port"))
+
+  private def facebookRequest(request: HttpRequest): Future[HttpResponse] = {
+    Source.single(request).via(facebookConnectionFlow).runWith(Sink.head)
   }
 
   val routes = {
@@ -112,6 +125,11 @@ trait Service extends Protocols {
             (fbToken, fbProfile, meetupProfile, city, dateFrom, dateTo) =>
           complete {
             s"fbToken: $fbToken, fbProfile: $fbProfile, meetupProfile: $meetupProfile, city: $city, dateFrom: $dateFrom, dateTo: $dateTo"
+
+            facebookApi.fetchEvents(fbToken, city).map[ToResponseMarshallable] {
+              case Right(info) => ReturnFacebookEvent(info)
+              case Left(errorMessage) => BadRequest -> errorMessage
+            }
           }
         }
       } ~
