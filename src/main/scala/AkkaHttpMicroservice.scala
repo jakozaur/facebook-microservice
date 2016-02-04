@@ -62,7 +62,7 @@ trait Service extends Protocols {
   def config: Config
   val logger: LoggingAdapter
 
-  lazy val facebookApi = new FacebookApi(config)
+  lazy val facebookApi = new FacebookApi(config, logger)
 
   lazy val freeGeoIpConnectionFlow: Flow[HttpRequest, HttpResponse, Any] =
     Http().outgoingConnection(config.getString("services.freeGeoIpHost"), config.getInt("services.freeGeoIpPort"))

@@ -1,10 +1,12 @@
 import java.io.IOException
 
 import akka.actor.ActorSystem
+import akka.event.LoggingAdapter
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.model.{HttpResponse, HttpRequest}
+import akka.http.scaladsl.model.headers.{RawHeader, Accept}
+import akka.http.scaladsl.model.{MediaRange, HttpHeader, HttpResponse, HttpRequest}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Sink, Source, Flow}
@@ -19,9 +21,9 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 
 case class FacebookEvents(data: List[FacebookEvent], paging: FacebookPaging)
 
-case class FacebookEvent(description: String, name: String, place: FacebookPlace, start_time: String, id: String)
+case class FacebookEvent(description: String, name: String, place: Option[FacebookPlace], start_time: String, id: String)
 case class FacebookPlace(name: String, location: FacebookLocation)
-case class FacebookLocation(city: String, country: String, latitude: Double, longitude: Double, street: String, zip: String)
+case class FacebookLocation(city: String, country: String, latitude: Double, longitude: Double, street: Option[String], zip: String)
 
 case class FacebookPaging(next: String)
 
@@ -36,7 +38,7 @@ trait FacebookProtocols extends DefaultJsonProtocol {
 /**
  * @author Jacek Migdal (jacek@sumologic.com)
  */
-class FacebookApi(config: Config)
+class FacebookApi(config: Config, logger: LoggingAdapter)
                  (implicit val executor: ExecutionContextExecutor,
                   implicit val system: ActorSystem,
                   implicit val materializer: Materializer) extends FacebookProtocols {
@@ -50,8 +52,10 @@ class FacebookApi(config: Config)
   def fetchEvents(fbToken: String, city: String): Future[Either[String, List[FacebookEvent]]] = {
 
     facebookRequest(RequestBuilding.Get(
-        s"/v2.5/search?access_token=$fbToken&format=json&method=get&pretty=0&q=$city&type=event")).flatMap { response =>
+        s"/v2.5/search?access_token=$fbToken&format=json&method=get&pretty=0&q=$city&type=event").
+        addHeader(RawHeader("Accept", "application/json"))).flatMap { response =>
       response.status match {
+        //case _ => Unmarshal(response.entity).to[String].map(Left(_))
         case OK => Unmarshal(response.entity).to[FacebookEvents].map(_.data).map(Right(_))
         case BadRequest => Unmarshal(response.entity).to[String].map(msg => Left(s"BadRequest: $msg"))
         case _ => Future.successful(Left("Unexpected error: " + Unmarshal(response.entity)))
