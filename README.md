@@ -6,7 +6,17 @@ More details on [Meetup page](http://www.meetup.com/ScalaWAW/events/228083916/).
 
 [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy)
 
-## Usage
+## Caller usage
+
+Get profile:
+[GET /profile?fb_token=...](https://scalawaw4-facebook.herokuapp.com/profile?fb_token=aaa)
+
+Get events:
+[GET /events?fb_token=...&fb_profile=...&meetup_profile=...&city=...&date_from=...&date_to=...](https://scalawaw4-facebook.herokuapp.com/events?fb_token=aaa&fb_profile=bb&meetup_profile=cc&city=dd&date_from=2016-02-04&date_to=2016-3-04)
+
+
+
+## Development Usage
 
 Start services with sbt:
 
