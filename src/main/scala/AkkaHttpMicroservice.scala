@@ -116,7 +116,10 @@ trait Service extends Protocols {
       path("profile") {
         (get & parameter("fb_token")) { fbToken =>
           complete {
-            fbToken
+            facebookApi.fetchProfile(fbToken).map[ToResponseMarshallable] {
+              case Right(profile) => profile
+              case Left(errorMessage) => BadRequest -> errorMessage
+            }
           }
         }
       } ~
@@ -124,8 +127,6 @@ trait Service extends Protocols {
         (get & parameters("fb_token", "fb_profile", "meetup_profile", "city", "date_from", "date_to")) {
             (fbToken, fbProfile, meetupProfile, city, dateFrom, dateTo) =>
           complete {
-            s"fbToken: $fbToken, fbProfile: $fbProfile, meetupProfile: $meetupProfile, city: $city, dateFrom: $dateFrom, dateTo: $dateTo"
-
             facebookApi.fetchEvents(fbToken, city).map[ToResponseMarshallable] {
               case Right(info) => ReturnFacebookEvent(info)
               case Left(errorMessage) => BadRequest -> errorMessage
