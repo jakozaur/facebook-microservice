@@ -59,8 +59,8 @@ $ sbt
 
 ## Author & license
 
-[Martyna Gula](https://github.com/biesczadka)
-[Jacek Migdał](https://github.com/jakozaur)
+ * [Martyna Gula](https://github.com/biesczadka)
+ * [Jacek Migdał](https://github.com/jakozaur)
 
 Based on [akka-http-microservice](https://github.com/theiterators/akka-http-microservice) by:
 
