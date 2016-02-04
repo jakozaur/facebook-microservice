@@ -99,6 +99,11 @@ trait Service extends Protocols {
             }
           }
         }
+      } ~
+      (get & path(Segments(0, Int.MaxValue))) { _ =>
+        complete {
+          BadRequest -> "Bad request, check documentation: https://github.com/jakozaur/facebook-microservice"
+        }
       }
     }
   }
