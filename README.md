@@ -1,4 +1,4 @@
-# Facebook service written for ScalaWaw #4 Hackhathon
+# Facebook service written for ScalaWaw #4 Hackathon
 
 More details on [Meetup page](http://www.meetup.com/ScalaWAW/events/228083916/).
 
